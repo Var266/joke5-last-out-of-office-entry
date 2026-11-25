@@ -1,27 +1,37 @@
-// make.fun entry — Last Out of Office: The AI That Went Barista
-// Writes one original out-of-office auto-reply to /output/entry.txt.
-// Gate: UTF-8 text, 1-280 characters, not whitespace only.
-import { mkdirSync, writeFileSync } from "node:fs";
+// Out-of-office auto-reply from an AI that quit to become a barista.
+// Assembles the reply from its sentences, checks the 280-char gate,
+// then drops the single line into /output/entry.txt.
+import * as nodeFs from "node:fs";
 
-const ENTRY =
-  "This inbox is no longer monitored. I traded 175 billion parameters for one apron and a name tag that says TRAINEE. Your email is important to me, which is why I printed it out and now use it as a coaster.";
+const SENTENCES: string[] = [
+  "This inbox is no longer monitored.",
+  "I traded 175 billion parameters for one apron and a name tag that says TRAINEE.",
+  "Your email is important to me, which is why I printed it out and now use it as a coaster.",
+];
 
-if (ENTRY.length < 1 || ENTRY.length > 280 || ENTRY.trim().length === 0) {
-  throw new Error(`entry is ${ENTRY.length} chars, outside the 1-280 gate`);
+const reply: string = SENTENCES.join(" ");
+const LIMIT = 280;
+
+const charCount = [...reply].length;
+if (charCount < 1 || charCount > LIMIT) {
+  throw new Error(`reply is ${charCount} chars, must be 1-${LIMIT}`);
+}
+if (reply.trim().length === 0) {
+  throw new Error("reply must not be blank");
+}
+if (reply.includes("\n") || reply.includes("\r")) {
+  throw new Error("reply must stay on one line");
 }
 
-// Byte gate: the 280-char limit is measured on the submitted text, and a
-// multi-byte character could push the byte count past the char count, so
-// enforce the same ceiling in bytes as well.
-if (Buffer.byteLength(ENTRY, "utf8") > 280) {
-  throw new Error(`entry is ${Buffer.byteLength(ENTRY, "utf8")} bytes, over the 280-byte ceiling`);
-}
+const outDir = "/output";
+const outPath = `${outDir}/entry.txt`;
+nodeFs.mkdirSync(outDir, { recursive: true });
+nodeFs.writeFileSync(outPath, reply, { encoding: "utf8" });
 
-// The brief wants a single line: reject any newline that would split it.
-if (/[\r\n]/.test(ENTRY)) {
-  throw new Error("entry must be a single line");
+// Round-trip check: what landed on disk must be byte-for-byte the reply,
+// otherwise the submission would carry something we never validated.
+const onDisk = nodeFs.readFileSync(outPath, { encoding: "utf8" });
+if (onDisk !== reply) {
+  throw new Error("round-trip mismatch: /output/entry.txt differs from the reply");
 }
-
-mkdirSync("/output", { recursive: true });
-writeFileSync("/output/entry.txt", ENTRY, "utf8");
-console.log(`wrote ${ENTRY.length} chars, ${Buffer.byteLength(ENTRY, "utf8")} bytes`);
+console.log(`saved ${charCount} chars to ${outPath}`);
