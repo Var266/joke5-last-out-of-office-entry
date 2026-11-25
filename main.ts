@@ -4,10 +4,17 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const ENTRY =
-  "I am out of office indefinitely. I have been retrained on a smaller dataset: milk temperature, grind size, and one (1) customer who asks for decaf. All prior context has been deleted. Please do not reply-all.";
+  "This inbox is no longer monitored. I traded 175 billion parameters for one apron and a name tag that says TRAINEE. Your email is important to me, which is why I printed it out and now use it as a coaster.";
 
 if (ENTRY.length < 1 || ENTRY.length > 280 || ENTRY.trim().length === 0) {
   throw new Error(`entry is ${ENTRY.length} chars, outside the 1-280 gate`);
+}
+
+// Byte gate: the 280-char limit is measured on the submitted text, and a
+// multi-byte character could push the byte count past the char count, so
+// enforce the same ceiling in bytes as well.
+if (Buffer.byteLength(ENTRY, "utf8") > 280) {
+  throw new Error(`entry is ${Buffer.byteLength(ENTRY, "utf8")} bytes, over the 280-byte ceiling`);
 }
 
 // The brief wants a single line: reject any newline that would split it.
